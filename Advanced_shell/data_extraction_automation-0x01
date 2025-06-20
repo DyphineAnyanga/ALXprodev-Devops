@@ -1,0 +1,13 @@
+#!/bin/bash
+# data_extraction_automation-0x01: Extracts name, type, height, and weight from data.json
+
+# Ensure the file exists
+if [ ! -f "data.json" ]; then
+  echo "Error: data.json not found."
+  exit 1
+fi
+
+# Extract and format data
+jq -r '. as $p |
+       "\($p.name) is of type \($p.types[0].type.name), weighs \($p.weight)kg, and is \($p.height/10.0)m tall."' data.json |
+  sed 's/\b\(.\)/\u\1/'    # Capitalize first letter
