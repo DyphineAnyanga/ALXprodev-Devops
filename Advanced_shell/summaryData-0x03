@@ -1,0 +1,34 @@
+#!/bin/bash
+# summaryData-0x03: Summarizes Pokémon height and weight into CSV with averages
+
+INPUT_DIR="pokemon_data"
+OUTPUT_FILE="pokemon_report.csv"
+
+# CSV header
+echo "Name,Height (m),Weight (kg)" > "$OUTPUT_FILE"
+
+# Loop through actual JSON files
+for FILE in $INPUT_DIR/*.json; do
+  # Skip if no files matched
+  [ ! -f "$FILE" ] && continue
+
+  name=$(jq -r '.name' "$FILE" | sed 's/.*/\u&/')
+  height=$(jq -r '.height' "$FILE" | awk '{printf "%.1f", $1 / 10}')
+  weight=$(jq -r '.weight' "$FILE" | awk '{printf "%.1f", $1 / 10}')
+  echo "$name,$height,$weight" >> "$OUTPUT_FILE"
+done
+
+# Check if report has data (more than just header)
+if [ "$(wc -l < "$OUTPUT_FILE")" -le 1 ]; then
+  echo "No valid data found in $INPUT_DIR. Check if .json files exist."
+  exit 1
+fi
+
+# Output summary
+echo -e "\nCSV Report generated at: $OUTPUT_FILE"
+cat "$OUTPUT_FILE"
+
+# Compute averages
+awk -F',' 'NR>1 {h+=$2; w+=$3; n++} END {
+  printf "\nAverage Height: %.2f m\nAverage Weight: %.2f kg\n", h/n, w/n
+}' "$OUTPUT_FILE"
