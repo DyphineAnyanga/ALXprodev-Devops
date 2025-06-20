@@ -1,0 +1,28 @@
+#!/bin/bash
+# batchProcessing-0x04: Fetch Pokémon data in parallel
+
+POKEMONS=("bulbasaur" "ivysaur" "venusaur" "charmander" "charmeleon")
+API="https://pokeapi.co/api/v2/pokemon"
+OUTDIR="pokemon_data_parallel"
+LOGFILE="parallel_errors.log"
+
+mkdir -p "$OUTDIR"
+: > "$LOGFILE"
+
+fetch_pokemon() {
+  local NAME="$1"
+  echo "Fetching $NAME..."
+  curl -s --fail "$API/$NAME" -o "$OUTDIR/$NAME.json"
+  if [ $? -eq 0 ]; then
+    echo "✅ Saved $NAME.json"
+  else
+    echo "❌ Failed to fetch $NAME" | tee -a "$LOGFILE"
+  fi
+}
+
+for NAME in "${POKEMONS[@]}"; do
+  fetch_pokemon "$NAME" &
+done
+
+wait
+echo "All background fetches complete ✅"

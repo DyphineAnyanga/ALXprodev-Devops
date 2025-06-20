@@ -1,23 +1,33 @@
 #!/bin/bash
-# batchProcessing-0x02: Fetch data for multiple Pokémon and save each in a JSON file
+# batchProcessing-0x02: Fetch Pokémon data with retry logic and error handling
 
 POKEMONS=("bulbasaur" "ivysaur" "venusaur" "charmander" "charmeleon")
 API="https://pokeapi.co/api/v2/pokemon"
 OUTDIR="pokemon_data"
+LOGFILE="fetch_errors.log"
 
 mkdir -p "$OUTDIR"
+: > "$LOGFILE"  # clear log
 
 for NAME in "${POKEMONS[@]}"; do
-  LOWER_NAME=$(echo "$NAME" | tr '[:upper:]' '[:lower:]')
-  echo "Fetching data for $LOWER_NAME..."
-  
-  curl -s "$API/$LOWER_NAME" -o "$OUTDIR/$LOWER_NAME.json"
-  
-  if [ $? -eq 0 ]; then
-    echo "Saved data to $OUTDIR/$LOWER_NAME.json ✅"
-  else
-    echo "Failed to fetch data for $LOWER_NAME ❌"
-  fi
+  echo "Fetching data for $NAME..."
+  SUCCESS=0
+  ATTEMPT=0
 
-  sleep 1  # Delay to prevent rate-limiting
+  while [ $ATTEMPT -lt 3 ]; do
+    curl -s --fail "$API/$NAME" -o "$OUTDIR/$NAME.json"
+    if [ $? -eq 0 ]; then
+      echo "Saved data to $OUTDIR/$NAME.json ✅"
+      SUCCESS=1
+      break
+    else
+      ((ATTEMPT++))
+      echo "Attempt $ATTEMPT failed for $NAME. Retrying..."
+      sleep 1
+    fi
+  done
+
+  if [ $SUCCESS -eq 0 ]; then
+    echo "❌ Failed to fetch $NAME after 3 attempts" | tee -a "$LOGFILE"
+  fi
 done
