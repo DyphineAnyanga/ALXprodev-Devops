@@ -1,24 +1,25 @@
 #!/bin/bash
-# data_extraction_automation-0x01: Extract Pokémon name, type, weight, height from JSON
+# data_extraction_automation-0x01: Extract name, type, weight, height from JSON using jq, awk, sed
 
-# Ensure the JSON file exists
+# Ensure data.json exists
 if [ ! -f "data.json" ]; then
-  echo "Error: data.json not found."
+  echo "data.json not found!"
   exit 1
 fi
 
-# Extract fields using jq
-jq -r '
-  .name,
-  .types[0].type.name,
-  .weight,
-  .height
-' data.json | awk '
-  NR==1 { name=$0 }
-  NR==2 { type=$0 }
-  NR==3 { weight=$0/10 }  # Convert to kg (1 unit = 0.1kg)
-  NR==4 { height=$0/10 }  # Convert to m (1 unit = 0.1m)
-  END {
-    printf "%s is of type %s, weighs %dkg, and is %.1fm tall.\n", name, type, weight, height
-  }
-' | sed -E 's/^([a-z])/\U\1/; s/type ([a-z])/\U\1/'
+# Extract raw fields with jq
+name=$(jq -r '.name' data.json)
+type=$(jq -r '.types[0].type.name' data.json)
+weight=$(jq -r '.weight' data.json)
+height=$(jq -r '.height' data.json)
+
+# Format using awk (e.g., convert decimeters to meters, hectograms to kilograms)
+formatted_weight=$(echo "$weight" | awk '{printf "%d", $1/10}')
+formatted_height=$(echo "$height" | awk '{printf "%.1f", $1/10}')
+
+# Capitalize name and type using sed
+name=$(echo "$name" | sed 's/.*/\u&/')
+type=$(echo "$type" | sed 's/.*/\u&/')
+
+# Final output using required format
+echo "$name is of type $type, weighs ${formatted_weight}kg, and is ${formatted_height}m tall."
