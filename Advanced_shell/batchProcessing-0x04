@@ -1,5 +1,5 @@
 #!/bin/bash
-# batchProcessing-0x04: Fetch Pokémon data in parallel
+# batchProcessing-0x04: Fetch Pokémon data in parallel with job management
 
 POKEMONS=("bulbasaur" "ivysaur" "venusaur" "charmander" "charmeleon")
 API="https://pokeapi.co/api/v2/pokemon"
@@ -9,20 +9,36 @@ LOGFILE="parallel_errors.log"
 mkdir -p "$OUTDIR"
 : > "$LOGFILE"
 
+# Define function to fetch data
 fetch_pokemon() {
   local NAME="$1"
   echo "Fetching $NAME..."
   curl -s --fail "$API/$NAME" -o "$OUTDIR/$NAME.json"
   if [ $? -eq 0 ]; then
-    echo "✅ Saved $NAME.json"
+    echo "✅ $NAME saved"
   else
     echo "❌ Failed to fetch $NAME" | tee -a "$LOGFILE"
   fi
 }
 
+# Launch background jobs
 for NAME in "${POKEMONS[@]}"; do
   fetch_pokemon "$NAME" &
 done
 
+# Show running background jobs
+echo -e "\n📋 Listing background jobs:"
+jobs
+
+# Wait for all to finish
+echo -e "\n⏳ Waiting for all background jobs to finish..."
 wait
-echo "All background fetches complete ✅"
+echo "✅ All background fetches complete."
+
+# Demonstrate process management by killing an inactive process (example)
+sleep 100 &
+SLEEP_PID=$!
+echo -e "\n💤 Started dummy sleep process with PID: $SLEEP_PID"
+jobs
+kill "$SLEEP_PID"
+echo "🛑 Killed dummy process $SLEEP_PID"
